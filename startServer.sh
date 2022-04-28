@@ -1,0 +1,2 @@
+rmiregistry &
+java rmiserver/Server
