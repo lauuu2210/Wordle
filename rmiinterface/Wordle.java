@@ -6,24 +6,24 @@ import java.util.ArrayList;
 
 public interface Wordle extends Remote {
 
-    public String enviarPalabra() throws RemoteException;
+    public String sendWord() throws RemoteException;
 
-    public String validarPalabra(String word) throws RemoteException;
+    public String validateWord(String word) throws RemoteException;
 
     public ArrayList<String> compareWord(String attempt, String word) throws RemoteException;
 
-    public boolean controlIntentos(int id) throws RemoteException;
+    public boolean controlTry(int id) throws RemoteException;
 
-    public void iniciarSesion(int id) throws RemoteException;
+    public void login(int id) throws RemoteException;
 
-    public void clearIntroducidas() throws RemoteException;
+    public void clearUsed() throws RemoteException;
 
-    public String getIntroducidas(int index) throws RemoteException;
+    public String getUsed(int index) throws RemoteException;
 
-    public int sizeIntroducidas() throws RemoteException;
+    public int sizeUsed() throws RemoteException;
 
-    public void finPartida(int option) throws RemoteException;
+    public void endGame(int option) throws RemoteException;
 
-    public int incrementarIntentos(int id) throws RemoteException;
+    public int incrementTry(int id) throws RemoteException;
 
 }

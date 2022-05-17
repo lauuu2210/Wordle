@@ -14,32 +14,24 @@ public class Client {
 
     public static Scanner scanner = new Scanner(System.in);
 
-    //Control de todos los ides utilizados
-    public static ArrayList<Integer> ides = new ArrayList<>();
-    public static int id = 0; // Puede ser static, ya que no haremos multiples instancias en la misma maquina.
-                              // Si no que sera una instancia por maquina.
-    public static String solucion = "estropajo";
+    // Parámetros de control
+    public static ArrayList<Integer> ids = new ArrayList<>();
+    public static int id = 0;
+    public static String solution = " ";
 
     public static void main(String[] args) {
 
-        // Se parametrizan las entradas por consola.
+        // Parametros conexion server introducidos por consola
         String IP_servidor = args[0];
-        int puerto = Integer.parseInt(args[1]);
-        String nombreServidor = args[2];
+        int port = Integer.parseInt(args[1]);
+        String nameServer = args[2];
 
         try {
 
-            Registry reg = LocateRegistry.getRegistry(IP_servidor, puerto);
-
-            Wordle stub = (Wordle) reg.lookup(nombreServidor);
-
-            //Se limpia la consola.
+            Registry reg = LocateRegistry.getRegistry(IP_servidor, port);
+            Wordle stub = (Wordle) reg.lookup(nameServer);
             clear();
-            //Envia una id generada aleatoriamente.
-            enviarID(stub);
-
-
-            //Se hace display del menu.
+            sendID(stub);
             menu(stub);
 
         } catch (RemoteException e) {
@@ -54,75 +46,77 @@ public class Client {
     }
 
     /**
-     * Se genera un ID aleatorio. Tambien se comprueba que este no se haya utilizado. 
-     * @param stub Se pasa el objeto remoto para poder utilizar las funciones de este.
+     * Se genera un ID aleatorio. Tambien se comprueba que este no se haya
+     * utilizado.
+     * 
+     * @param stub objeto remoto del cual usa funciones
      * @throws RemoteException
      */
-    public static void enviarID(Wordle stub) throws RemoteException {
+    public static void sendID(Wordle stub) throws RemoteException {
         Random random = new Random();
         id = random.nextInt(1000);
-        while (ides.contains(id)) {
+        while (ids.contains(id)) {
             id = random.nextInt(1000);
         }
         try {
-            stub.iniciarSesion(id);
+            stub.login(id);
         } catch (RemoteException e) {
             System.out.println("Error a la hora de generar el id de sesion");
         }
     }
 
     /**
-     * Funcion encargada de 'realizar' el juego. Esto quiere decir, presentarle el 'entorno grafico' al usuario,
-     * comunicarse con el Servidor para realizar validaciones y obtener 'feedback' sobre la palabra. 
-     * @param stub Se pasa el objeto remoto para poder utilizar las funciones de este.
+     * Implementación del juego, se llaman al las funciones correspondientes para
+     * que este funcione correctamente
+     * 
+     * @param stub objeto remoto del cual usa funciones
      * @throws RemoteException
      */
     public static void play(Wordle stub) throws RemoteException {
 
-        if (solucion.equals(stub.enviarPalabra())) {
-            System.out.println("Ya has jugado, debes esperar a que cambien la palabra");
+        if (solution.equals(stub.sendWord())) {
+            System.out.println("Ya has jugado, debes esperar a que cambien la word");
         } else {
-            solucion = stub.enviarPalabra();
-            System.out.println(solucion);
-            boolean palabraValida = false;
-            String palabra;
+            solution = stub.sendWord();
+            System.out.println(solution);
+            boolean validWord = false;
+            String word;
             try {
                 do {
                     do {
-                        palabra = leerPalabra(scanner);
-                        palabra = palabra.toUpperCase();
-                        if (stub.validarPalabra(palabra).equals("OK")) {
-                            palabraValida = true;
+                        word = readWord(scanner);
+                        word = word.toUpperCase();
+                        if (stub.validateWord(word).equals("OK")) {
+                            validWord = true;
                         } else {
-                            System.out.println(stub.validarPalabra(palabra));
+                            System.out.println(stub.validateWord(word));
                         }
-                    } while (!palabraValida);
-                    stub.compareWord(palabra, solucion);
+                    } while (!validWord);
+                    validWord = false;
+                    stub.compareWord(word, solution);
 
                     for (int i = 0; i < 5; i++) {
-                        if (i < stub.sizeIntroducidas()) {
-                            System.out.println(stub.getIntroducidas(i));
+                        if (i < stub.sizeUsed()) {
+                            System.out.println(stub.getUsed(i));
                         } else {
                             System.out.println("  |   |   |   |   |");
                         }
                     }
-                    System.out.println(stub.incrementarIntentos(id));
+                    System.out.println(stub.incrementTry(id));
 
-                } while (stub.controlIntentos(id) && !esSolucion(palabra, solucion));
+                } while (stub.controlTry(id) && !isSolution(word, solution));
 
-                stub.clearIntroducidas();
+                stub.clearUsed();
 
-                if (!stub.controlIntentos(id)) {
-                    System.out.println("\t\t---------- Has perdido, mas suerte la proxima vez! la palabra correcta era "
-                            + solucion + " ----------");
+                if (!stub.controlTry(id)) {
+                    System.out.println("\t\t---------- Has perdido, mas suerte la proxima vez! la word correcta era "
+                            + solution + " ----------");
                 } else {
                     System.out.println("\t\t---------- Felicidades, has ganado!!! ----------");
                 }
 
-                stub.finPartida(id);
+                stub.endGame(id);
             } catch (RemoteException e) {
-                // Muy importante detallar nuestros errores para saber de donde vienen nuestros
-                // errores
                 System.out.println("Host not reachable // comunication failure!! " + e);
             }
         }
@@ -130,8 +124,9 @@ public class Client {
     }
 
     /**
-     * Menu el cual nos permite jugar, leer las instruciones o salir del juego.
-     * @param stub Se pasa el objeto remoto para poder utilizar las funciones de este.
+     * Menu para que el usuario decida que accion quiere realizar
+     * 
+     * @param stub objeto remoto del cual usa funciones
      * @throws RemoteException
      */
     public static void menu(Wordle stub) throws RemoteException {
@@ -160,28 +155,31 @@ public class Client {
     }
 
     /**
-     * Se comprueba si la entrada/intento es la solucion correcta.
-     * @param intento
-     * @param solucion Afirmativo si la solucion es correcta, caso contrario devuelve negativo.
-     * @return
+     * Comprueba si la palabra introducida es la solucion
+     * 
+     * @param tries    intento introducido por usuario
+     * @param solution palabra solucion
+     * @return solution == tries
      */
-    public static boolean esSolucion(String intento, String solucion) {
-        return intento.equals(solucion);
+    public static boolean isSolution(String tries, String solution) {
+        return tries.equals(solution);
     }
 
     /**
-     * Lectura de palabra por consola.
+     * Lectura de la palabra por consola.
      * 
-     * @param scanner
-     * @return palabra introducida por consola, como String.
+     * @param scanner objeto para introducir parametros por consola en medio de la
+     *                ejecucion
+     * @return word introducida por consola, como String.
      */
-    public static String leerPalabra(Scanner scanner) {
-        System.out.println("Introduce una palabra: ");
+    public static String readWord(Scanner scanner) {
+        System.out.println("Introduce una word: ");
         return scanner.nextLine();
     }
 
     /**
      * Se visualizan las reglas del juego por pantalla.
+     * 
      * @throws RemoteException
      */
     public static void instructions() throws RemoteException {
@@ -189,8 +187,8 @@ public class Client {
         System.out.println("\t\t\tWORDLE");
         System.out.println("----------------------------------------------------------------------------------");
         System.out.println("REGLAS DEL JUEGO:");
-        System.out.println("\t1. Intenta adivinar una palabra de 5 letras");
-        System.out.println("\t2. Tienes 5 intentos");
+        System.out.println("\t1. Intenta adivinar una word de 5 letras");
+        System.out.println("\t2. Tienes 5 triess");
         System.out.println("\t3. Las letras que coincidan con su posicion se pintaran en verde");
         System.out.println("\t4. Las letras que no esten en su posicion se pintaran en amarillo");
         System.out.println("\t5. Las letras que no coincidan no tendran color y se mostraran debajo");
