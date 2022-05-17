@@ -10,3 +10,5 @@ El servidor genera una palabra cada cierto tiempo, común a todos los usuarios a
       
 AVISO: Los colores implementados para hacerlo más parecido al original unicamente funcionan ejecutandolos en una terminal Linux o en la terminal de Visual Studio 
 o similares.
+
+Realizado en colaboracion con dolimpio.
